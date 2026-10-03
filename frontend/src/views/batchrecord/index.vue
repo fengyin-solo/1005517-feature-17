@@ -67,6 +67,26 @@
       <span>共 {{ total }} 条批生产记录记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
+
+    <section class="writeback-section">
+      <h3>培训结果回写清单</h3>
+      <p class="page-desc">人员培训判定合格后，结果自动回写到这里，随批生产记录留档；同一份培训只回写一次。</p>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th v-for="column in writebackColumns" :key="column">{{ column }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in writebacks" :key="String(row.id)">
+            <td v-for="column in writebackColumns" :key="column">{{ row[column] ?? '—' }}</td>
+          </tr>
+          <tr v-if="!writebacks.length">
+            <td :colspan="writebackColumns.length" class="empty-state">暂无培训回写记录</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
   </section>
 </template>
 
@@ -79,6 +99,7 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { listTrainingWritebacks } from '@/api/training-service'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('batchrecord')
@@ -86,8 +107,10 @@ const columns = ["批号", "产品名称", "生产工序", "投料量", "操作�
 const actions = ["提交编制", "送交复核", "归档批记录"]
 const statuses = ["待编制", "编制中", "已复核", "已归档"]
 const stats = [{"label": "待编制批记录", "value": 0}, {"label": "编制中批记录", "value": 0}, {"label": "本月归档数", "value": 0}]
+const writebackColumns = ["培训编号", "培训主题", "受训岗位", "考核成绩", "有效期至", "回写时间", "回写说明"]
 
 const rows = ref<EntryRow[]>([])
+const writebacks = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
@@ -128,6 +151,7 @@ function reload() {
     const payload = listEntries(meta.key, filters.value)
     rows.value = payload.items
     total.value = payload.total
+    writebacks.value = listTrainingWritebacks()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '批生产记录列表读取失败'
   }

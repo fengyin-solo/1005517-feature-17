@@ -1,3 +1,4 @@
+import { migrateStorage } from './migrate'
 import { SEED_ROWS } from './seed'
 import type { EntryRow } from './types'
 
@@ -11,19 +12,24 @@ function clone<T>(value: T): T {
 function readStorage(): Record<string, EntryRow[]> {
   const fallback = clone(SEED_ROWS)
   if (typeof window === 'undefined' || !window.localStorage) {
-    return fallback
+    return migrateStorage(fallback)
   }
   const raw = window.localStorage.getItem(STORAGE_KEY)
   if (!raw) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fallback))
-    return fallback
+    const seeded = migrateStorage(fallback)
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
+    return seeded
   }
   try {
     const parsed = JSON.parse(raw) as Record<string, EntryRow[]>
-    return { ...fallback, ...parsed }
+    // 存量数据在这里迁移：按旧记录回填新字段，迁移结果写回存储留档。
+    const migrated = migrateStorage({ ...fallback, ...parsed })
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
+    return migrated
   } catch {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fallback))
-    return fallback
+    const seeded = migrateStorage(fallback)
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
+    return seeded
   }
 }
 
