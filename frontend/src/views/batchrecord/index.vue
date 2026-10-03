@@ -3,7 +3,7 @@
     <header class="page-head">
       <div>
         <h2>批生产记录管理</h2>
-        <p class="page-desc">维护批生产记录，围绕批号、产品名称、生产工序、投料量做登记、筛选与状态流转。</p>
+        <p class="page-desc">维护批生产记录，围绕批号、产品名称、生产工序、受训岗位做登记与核对；岗位培训核对栏由人员培训结论自动回写。</p>
       </div>
       <div class="page-actions">
         <button class="btn primary" type="button" @click="openCreate">登记批生产记录</button>
@@ -43,7 +43,15 @@
       </thead>
       <tbody>
         <tr v-for="row in rows" :key="String(row.id)">
-          <td v-for="column in columns" :key="column">{{ row[column] ?? '—' }}</td>
+          <td v-for="column in columns" :key="column">
+            <span
+              v-if="column === '岗位培训核对'"
+              :class="['check-cell', String(row[column]).startsWith('已合格') ? 'check-ok' : 'check-miss']"
+            >
+              {{ row[column] || '未核对' }}
+            </span>
+            <template v-else>{{ row[column] ?? '—' }}</template>
+          </td>
           <td>{{ row.status }}</td>
           <td class="row-actions">
             <button
@@ -82,7 +90,7 @@ import {
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('batchrecord')
-const columns = ["批号", "产品名称", "生产工序", "投料量", "操作人", "复核人", "起始时间", "批记录状态"]
+const columns = ["批号", "产品名称", "生产工序", "受训岗位", "投料量", "操作人", "复核人", "起始时间", "岗位培训核对", "批记录状态"]
 const actions = ["提交编制", "送交复核", "归档批记录"]
 const statuses = ["待编制", "编制中", "已复核", "已归档"]
 const stats = [{"label": "待编制批记录", "value": 0}, {"label": "编制中批记录", "value": 0}, {"label": "本月归档数", "value": 0}]
@@ -135,3 +143,21 @@ function reload() {
 
 onMounted(reload)
 </script>
+
+<style scoped>
+.check-cell {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.check-ok {
+  background: #e7f6ec;
+  color: #177245;
+}
+.check-miss {
+  background: #fdecec;
+  color: #b42318;
+}
+</style>
